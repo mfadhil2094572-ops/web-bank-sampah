@@ -16,8 +16,10 @@ async function updateCalculation() {
         return;
     }
 
-    try {
-        const res = await fetch(`/api/transaction/estimate.php?type_id=${encodeURIComponent(type)}&weight=${encodeURIComponent(weight)}`, {credentials: 'same-origin'});
+        try {
+            const API_BASE = (window.APP_API_BASE || '').replace(/\/$/, '');
+            const url = (API_BASE ? API_BASE : '') + `/api/transaction/estimate.php?type_id=${encodeURIComponent(type)}&weight=${encodeURIComponent(weight)}`;
+            const res = await fetch(url, {credentials: 'include'});
         const json = await res.json();
         document.getElementById('pricePerKg').textContent = json.price && weight ? `Rp ${numberWithSep(Math.round(json.price/weight))}` : 'Rp 0';
         document.getElementById('totalWeight').textContent = `${weight} kg`;
@@ -46,7 +48,8 @@ function addToCart() {
     if (!weight || weight <= 0) return alert('Masukkan berat yang valid');
 
     // fetch estimate and add
-    fetch(`/api/transaction/estimate.php?type_id=${encodeURIComponent(typeId)}&weight=${encodeURIComponent(weight)}`, {credentials: 'same-origin'})
+        const API_BASE = (window.APP_API_BASE || '').replace(/\/$/, '');
+        fetch((API_BASE ? API_BASE : '') + `/api/transaction/estimate.php?type_id=${encodeURIComponent(typeId)}&weight=${encodeURIComponent(weight)}`, {credentials: 'include'})
         .then(r => r.json())
         .then(json => {
             cart.push({typeId: parseInt(typeId), typeName, weight, price: json.price, points: json.points});
@@ -99,7 +102,8 @@ async function submitWaste() {
             const form = new URLSearchParams();
             form.append('waste_type_id', item.typeId);
             form.append('weight', item.weight);
-            const res = await fetch('/api/transaction/transactions_create.php', {method: 'POST', body: form, headers: {'Accept': 'application/json'}, credentials: 'same-origin'});
+                const API_BASE = (window.APP_API_BASE || '').replace(/\/$/, '');
+                const res = await fetch((API_BASE || '') + '/api/transaction/transactions_create.php', {method: 'POST', body: form, headers: {'Accept': 'application/json'}, credentials: 'include'});
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || 'Error');
         }

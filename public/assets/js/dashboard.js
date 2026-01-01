@@ -1,4 +1,5 @@
 // Dashboard/admin small UX helpers
+const APP_API_BASE = (window.APP_API_BASE || '').replace(/\/$/, '');
 document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-approve-btn]');
     if (!btn) return;
@@ -11,7 +12,7 @@ document.addEventListener('click', async (e) => {
         const form = new URLSearchParams();
         form.append('transaction_id', txId);
         form.append('action', action);
-        const res = await fetch('/api/admin/admin_approve.php', {method: 'POST', body: form, credentials: 'same-origin'});
+        const res = await fetch((APP_API_BASE || '') + '/api/admin/admin_approve.php', {method: 'POST', body: form, credentials: 'include'});
         if (res.redirected) {
             window.location.href = res.url;
             return;

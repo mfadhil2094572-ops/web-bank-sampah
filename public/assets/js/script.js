@@ -1,7 +1,8 @@
 // Global UI helpers
+const APP_API_BASE = (window.APP_API_BASE || '').replace(/\/$/, '');
 async function logout() {
     try {
-        const res = await fetch('/api/auth/logout.php', {credentials: 'same-origin'});
+        const res = await fetch((APP_API_BASE || '') + '/api/auth/logout.php', {credentials: 'include'});
         const jr = await res.json();
         if (jr.redirect) window.location.href = jr.redirect; else window.location.href = '/login';
     } catch (e) {

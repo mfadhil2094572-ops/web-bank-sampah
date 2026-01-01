@@ -22,14 +22,16 @@ function redirectToDashboard() {
 }
 
 // Optional: intercept register/login to show nicer errors without leaving page
+const APP_API_BASE = (window.APP_API_BASE || '').replace(/\/$/, '');
 document.addEventListener('submit', async (e) => {
     const form = e.target;
     if (form.matches('#loginFormElement') || form.matches('#registerFormElement')) {
         e.preventDefault();
-        const action = form.getAttribute('action') || form.action;
+        const action = (form.getAttribute('action') || form.action).replace(/^\//, '');
+        const url = (APP_API_BASE ? APP_API_BASE + '/' : '/') + action;
         const data = new FormData(form);
         try {
-            const res = await fetch(action, {method: 'POST', body: data, headers: {'Accept':'application/json'}, credentials: 'same-origin'});
+            const res = await fetch(url, {method: 'POST', body: data, headers: {'Accept':'application/json'}, credentials: 'include'});
             const contentType = res.headers.get('content-type') || '';
             if (contentType.indexOf('application/json') !== -1) {
                 const jr = await res.json();
