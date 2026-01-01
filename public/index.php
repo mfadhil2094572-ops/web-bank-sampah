@@ -1,0 +1,457 @@
+<?php
+// Front controller: map clean routes to page files, otherwise render homepage
+// If webserver rewrites to this file, use PATH_INFO / REQUEST_URI to route
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$requestPath = rtrim($requestPath, '/');
+if ($requestPath === '') $requestPath = '/';
+// Method-based routing map (front controller will require existing api files)
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$base = dirname(__DIR__);
+$postMap = [
+    '/login' => $base . '/api/auth/login.php',
+    '/register' => $base . '/api/auth/register.php',
+    '/logout' => $base . '/api/auth/logout.php',
+    '/profile_update' => $base . '/api/user/profile_update.php',
+    '/pickup_request' => $base . '/api/user/pickup_request.php',
+    '/transactions_create' => $base . '/api/transaction/transactions_create.php',
+    '/my_waste' => $base . '/api/user/my_waste.php',
+    '/change_password' => $base . '/api/auth/change_password.php',
+    '/delete_account' => $base . '/api/auth/delete_account.php',
+];
+$getMap = [
+    '/transaction/estimate' => $base . '/api/transaction/estimate.php',
+];
+
+
+// Handle mapped POST requests
+if ($method === 'POST' && isset($postMap[$requestPath])) {
+    $file = $postMap[$requestPath];
+    if (is_file($file)) { require $file; exit; }
+    http_response_code(404);
+    require __DIR__ . '/404.php';
+    exit;
+}
+
+// Handle mapped GET requests
+if ($method === 'GET' && isset($getMap[$requestPath])) {
+    $file = $getMap[$requestPath];
+    if (is_file($file)) { require $file; exit; }
+    http_response_code(404);
+    require __DIR__ . '/404.php';
+    exit;
+}
+
+// If path starts with /api, attempt to serve from project api/ folder (allow legacy api URLs)
+if (strpos($requestPath, '/api/') === 0) {
+    $apiFile = dirname(__DIR__) . $requestPath;
+    if (is_file($apiFile)) {
+        require $apiFile;
+        exit;
+    }
+    // Try with .php appended
+    if (is_file($apiFile . '.php')) {
+        require $apiFile . '.php';
+        exit;
+    }
+    http_response_code(404);
+    if (file_exists(__DIR__ . '/404.php')) { require __DIR__ . '/404.php'; } else { echo '404 Not Found'; }
+    exit;
+}
+
+// Allow static asset passthrough handled by webserver; if a matching file exists, let server serve it
+// (This script only runs when .htaccess rewrites to index.php for non-file requests.)
+
+
+// route map: clean url => filesystem path candidates (public pages first, then project root)
+$routes = [
+    '/' => __DIR__ . '/index_home.php', // not existing yet, will render below
+    '/index.php' => __DIR__ . '/index_home.php',
+    '/login' => __DIR__ . '/pages/auth/login.php',
+    '/register' => __DIR__ . '/pages/auth/login.php',
+    '/about' => __DIR__ . '/pages/user/about.php',
+    '/services' => __DIR__ . '/pages/user/services.php',
+    '/contact' => __DIR__ . '/pages/user/contact.php',
+    '/calculator' => __DIR__ . '/pages/user/calculator.php',
+    '/dashboard' => __DIR__ . '/pages/user/dashboard.php',
+    '/my-waste' => __DIR__ . '/pages/user/my-waste.php',
+    '/pickup' => __DIR__ . '/pages/user/pickup.php',
+    '/profile' => __DIR__ . '/pages/user/profile.php',
+    '/rewards' => __DIR__ . '/pages/user/rewards.php',
+    '/transactions' => __DIR__ . '/pages/user/transactions.php',
+    '/admin/members' => __DIR__ . '/pages/admin/admin_members.php',
+    '/admin/pickups' => __DIR__ . '/pages/admin/admin_pickups.php',
+    '/admin/transactions' => __DIR__ . '/pages/admin/admin_transactions.php',
+    '/admin/waste-types' => __DIR__ . '/pages/admin/admin_waste_types.php',
+];
+
+// Helper to resolve route to an existing file (try public then fallback to ../pages)
+function resolve_route_file($path) {
+    // try direct path (public)
+    if (file_exists($path)) return $path;
+    // try project pages relative to public (../pages...)
+    $proj = dirname(__DIR__) . '/pages' . substr($path, strpos($path, '/pages') !== false ? strpos($path, '/pages') + 6 : 0);
+    if (file_exists($proj)) return $proj;
+    return null;
+}
+
+// Special-case: render homepage content (we'll include the original index markup below)
+if ($requestPath !== '/' && $requestPath !== '/index.php') {
+    // try route map
+    if (isset($routes[$requestPath])) {
+        $candidate = $routes[$requestPath];
+        $file = resolve_route_file($candidate);
+        if ($file) { require $file; exit; }
+    }
+    // try automatic mapping: /foo -> pages/user/foo.php or pages/auth/foo.php or pages/admin/foo.php
+    $tryPaths = [
+        __DIR__ . '/pages' . $requestPath . '.php',
+        __DIR__ . '/../pages' . $requestPath . '.php',
+        __DIR__ . '/pages/user' . $requestPath . '.php',
+        __DIR__ . '/pages/auth' . $requestPath . '.php',
+        __DIR__ . '/pages/admin' . $requestPath . '.php',
+    ];
+    foreach ($tryPaths as $t) { if (file_exists($t)) { require $t; exit; } }
+
+    // not found -> show central 404
+    http_response_code(404);
+    if (file_exists(__DIR__ . '/404.php')) { require __DIR__ . '/404.php'; } else { echo '404 Not Found'; }
+    exit;
+}
+
+// If we reach here, render homepage HTML below
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Sampah - Mulai Hidup Lebih Berkelanjutan</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/pages.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-logo">
+                <i class="fas fa-leaf"></i>
+                <span>Bank Sampah</span>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/" class="active">Beranda</a></li>
+                <li><a href="/about">Tentang Kami</a></li>
+                <li><a href="/services">Layanan</a></li>
+                <li><a href="/admin/members">Member</a></li>
+                <li><a href="/calculator">Kalkulator</a></li>
+                <li><a href="/contact">Kontak</a></li>
+                <li><a href="/login" class="btn-login">Masuk</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Bank Sampah Indonesia</h1>
+            <p>Tukar Sampah Anda dengan Uang Tunai dan Poin Reward</p>
+                <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="scrollToSection('layanan')">Mulai Sekarang</button>
+                <button class="btn btn-secondary" onclick="document.location='/login'">Daftar Member</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>15,000+</h3>
+                <p>Member Aktif</p>
+            </div>
+            <div class="stat-card">
+                <h3>5,000+</h3>
+                <p>Ton Sampah Terkumpul</p>
+            </div>
+            <div class="stat-card">
+                <h3>500+</h3>
+                <p>Lokasi Pengumpulan</p>
+            </div>
+            <div class="stat-card">
+                <h3>10,000+</h3>
+                <p>Pohon Tertanam</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services" id="layanan">
+        <div class="container">
+            <h2>Layanan Kami</h2>
+            <p class="section-subtitle">Berbagai layanan untuk mendukung gaya hidup berkelanjutan Anda</p>
+            
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-recycle"></i>
+                    </div>
+                    <h3>Penerimaan Sampah</h3>
+                    <p>Kami menerima berbagai jenis sampah termasuk plastik, kertas, logam, dan elektronik dengan standar kualitas tinggi.</p>
+                    <a href="/services" class="service-link">Pelajari lebih lanjut</a>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <h3>Tukar Poin</h3>
+                    <p>Tukarkan poin hasil mengumpulkan sampah dengan uang tunai atau produk pilihan kami.</p>
+                    <a href="/login" class="service-link">Lihat reward</a>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <h3>Jemput Sampah</h3>
+                    <p>Layanan jemput gratis untuk jumlah sampah tertentu langsung dari rumah Anda.</p>
+                    <a href="/login" class="service-link">Pesan sekarang</a>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h3>Program Edukasi</h3>
+                    <p>Workshop dan pelatihan gratis tentang pengurangan sampah dan hidup ramah lingkungan.</p>
+                    <a href="/login" class="service-link">Daftar workshop</a>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Tracking Real-time</h3>
+                    <p>Pantau perkembangan sampah Anda dan poin yang terkumpul melalui dashboard member.</p>
+                    <a href="/login" class="service-link">Dashboard</a>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Program CSR</h3>
+                    <p>Donasi poin Anda untuk program sosial dan lingkungan yang berdampak positif.</p>
+                    <a href="/login" class="service-link">Ikut program</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="container">
+            <h2>Cara Kerja Bank Sampah</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Daftar Member</h3>
+                    <p>Buat akun member gratis dan dapatkan kartu member digital.</p>
+                </div>
+                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Kumpulkan Sampah</h3>
+                    <p>Kumpulkan sampah yang sudah disiapkan sesuai kategori.</p>
+                </div>
+                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Bawa ke Lokasi</h3>
+                    <p>Bawa sampah Anda ke lokasi pengumpulan terdekat atau gunakan layanan jemput.</p>
+                </div>
+                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Dapatkan Poin</h3>
+                    <p>Dapatkan poin dan uang tunai langsung sesuai berat dan jenis sampah.</p>
+                </div>
+                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <h3>Tukar Hadiah</h3>
+                    <p>Tukarkan poin Anda dengan uang atau hadiah menarik pilihan.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Waste Types Section -->
+    <section class="waste-types">
+        <div class="container">
+            <h2>Jenis Sampah yang Kami Terima</h2>
+            <div class="waste-grid">
+                <div class="waste-item">
+                    <div class="waste-icon"><i class="fas fa-bottle-water"></i></div>
+                    <h3>Plastik</h3>
+                    <p>Botol, kantong, dan kemasan plastik lainnya</p>
+                    <span class="price">Rp 2.000-5.000/kg</span>
+                </div>
+                <div class="waste-item">
+                    <div class="waste-icon"><i class="fas fa-newspaper"></i></div>
+                    <h3>Kertas</h3>
+                    <p>Koran, majalah, kardus, dan kertas bekas</p>
+                    <span class="price">Rp 1.000-2.000/kg</span>
+                </div>
+                <div class="waste-item">
+                    <div class="waste-icon"><i class="fas fa-coins"></i></div>
+                    <h3>Logam</h3>
+                    <p>Kaleng, botol kaca, dan logam bekas</p>
+                    <span class="price">Rp 5.000-10.000/kg</span>
+                </div>
+                <div class="waste-item">
+                    <div class="waste-icon"><i class="fas fa-mobile-alt"></i></div>
+                    <h3>Elektronik</h3>
+                    <p>Barang elektronik bekas yang masih bisa diperbaiki</p>
+                    <span class="price">Rp 50.000-500.000</span>
+                </div>
+                <div class="waste-item">
+                    <div class="waste-icon"><i class="fas fa-shirt"></i></div>
+                    <h3>Tekstil</h3>
+                    <p>Pakaian, tas, dan kain bekas</p>
+                    <span class="price">Rp 3.000-8.000/kg</span>
+                </div>
+                <div class="waste-item">
+                    <div class="waste-icon"><i class="fas fa-leaf"></i></div>
+                    <h3>Organik</h3>
+                    <p>Kompos dari sampah dapur dan taman</p>
+                    <span class="price">Rp 1.000-3.000/kg</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2>Testimoni Member</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p>"Bank Sampah ini sangat membantu saya untuk berkontribusi pada lingkungan sekaligus dapat penghasilan tambahan."</p>
+                    <div class="testimonial-author">
+                        <strong>Siti Nurhaliza</strong>
+                        <small>Member sejak 2023</small>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p>"Pelayanannya cepat, transparan, dan sistemnya yang online membuat semua jadi mudah. Sangat merekomendasikan!"</p>
+                    <div class="testimonial-author">
+                        <strong>Ahmad Ridho</strong>
+                        <small>Member sejak 2022</small>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p>"Sudah berkontribusi mengumpulkan 500kg sampah dan dapatkan hadiah menarik. Terus dilanjutkan untuk lingkungan lebih baik!"</p>
+                    <div class="testimonial-author">
+                        <strong>Dewi Lestari</strong>
+                        <small>Member sejak 2024</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="newsletter">
+        <div class="container">
+            <h2>Bergabunglah dengan Gerakan Sampah Kami</h2>
+            <p>Dapatkan tips, promo, dan informasi terbaru tentang program bank sampah</p>
+            <form class="newsletter-form" id="newsletterForm">
+                <input type="email" placeholder="Masukkan email Anda" required>
+                <button type="submit" class="btn btn-primary">Daftar</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Tentang Bank Sampah</h4>
+                    <p>Kami adalah platform yang mengubah sampah menjadi sumber daya berharga untuk masa depan yang lebih berkelanjutan.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Tautan Cepat</h4>
+                    <ul>
+                        <li><a href="/about">Tentang Kami</a></li>
+                            <li><a href="/services">Layanan</a></li>
+                            <li><a href="/members">Member</a></li>
+                            <li><a href="/contact">Kontak</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak Kami</h4>
+                    <p>
+                        <i class="fas fa-phone"></i> +62 XXX-XXXX-XXXX<br>
+                        <i class="fas fa-envelope"></i> info@banksampah.id<br>
+                        <i class="fas fa-map-marker-alt"></i> Jakarta, Indonesia
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h4>Ikuti Kami</h4>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Bank Sampah Indonesia. Semua Hak Dilindungi.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal Newsletter Success -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <i class="fas fa-check-circle"></i>
+            <h2>Terima Kasih!</h2>
+            <p>Email Anda telah terdaftar di newsletter kami.</p>
+        </div>
+    </div>
+
+    <script src="/assets/js/script.js"></script>
+</body>
+</html>

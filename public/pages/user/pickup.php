@@ -1,0 +1,149 @@
+<?php
+require_once __DIR__ . '/../../../app/middleware/auth.php';
+require_login();
+$user = bs_get_current_user();
+$stmt = $pdo->prepare('SELECT * FROM pickups WHERE user_id = ? ORDER BY created_at DESC');
+$stmt->execute([$user['id']]);
+$pickups = $stmt->fetchAll();
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jemput Sampah - Dashboard Bank Sampah</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-logo"><i class="fas fa-leaf"></i><span>Bank Sampah</span></div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/">Beranda</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="#" onclick="logout()" class="btn-login">Keluar</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header"><h3>Menu</h3></div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
+                <a href="/my-waste" class="nav-item"><i class="fas fa-trash"></i><span>Sampah Saya</span></a>
+                <a href="/transactions" class="nav-item"><i class="fas fa-exchange-alt"></i><span>Transaksi</span></a>
+                <a href="/rewards" class="nav-item"><i class="fas fa-gift"></i><span>Reward</span></a>
+                <?php if (($user['role'] ?? '') === 'admin'): ?>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Manajemen <button class="manajemen-toggle" aria-label="Toggle Manajemen">▾</button></div>
+                    <nav class="sidebar-subnav">
+                        <a href="/admin/transactions" class="nav-item"><i class="fas fa-check-circle"></i><span>Kelola Laporan</span></a>
+                        <a href="/admin/pickups" class="nav-item"><i class="fas fa-truck"></i><span>Kelola Penjemputan</span></a>
+                        <a href="/admin/members" class="nav-item"><i class="fas fa-users"></i><span>Anggota</span></a>
+                    </nav>
+                </div>
+                <?php endif; ?>
+                <a href="/pickup" class="nav-item active"><i class="fas fa-truck"></i><span>Jemput Sampah</span></a>
+                <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Profil</span></a>
+                <a href="#" onclick="logout()" class="nav-item logout"><i class="fas fa-sign-out-alt"></i><span>Keluar</span></a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h1>Pesan Layanan Jemput</h1>
+                <p>Kami akan menjemput sampah Anda langsung dari rumah</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px;">
+                <div>
+                    <h3>Form Pemesanan</h3>
+                    <form class="form" id="pickupForm" method="POST" action="/api/user/pickup_request.php">
+                        <div class="form-group">
+                            <label>Tanggal Jemput</label>
+                            <input type="date" name="pickup_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Jam Jemput</label>
+                            <select name="time_slot" required>
+                                <option>08:00 - 10:00</option>
+                                <option>10:00 - 12:00</option>
+                                <option>13:00 - 15:00</option>
+                                <option>15:00 - 17:00</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Estimasi Berat Sampah (kg)</label>
+                            <input type="number" name="estimated_weight" placeholder="5" min="1" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Jenis Sampah (pisahkan koma)</label>
+                            <input type="text" name="types" placeholder="Plastik, Kertas, Logam">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Pesan Jemput</button>
+                    </form>
+                </div>
+
+                <div>
+                    <h3>Ketentuan Layanan</h3>
+                    <div style="background: var(--light-color); padding: 20px; border-radius: 8px; line-height: 1.8;">
+                        <h4>✓ Gratis Jemput</h4>
+                        <p>Tanpa biaya tambahan untuk jemput sampah Anda</p>
+
+                        <h4>✓ Minimum 5 kg</h4>
+                        <p>Layanan jemput berlaku untuk minimum 5 kg sampah</p>
+
+                        <h4>✓ Lokasi Tersedia</h4>
+                        <p>Jemput tersedia untuk area Jakarta dan sekitarnya</p>
+
+                        <h4>✓ Jaminan Tepat Waktu</h4>
+                        <p>Kami berkomitmen datang sesuai jam yang dijanjikan</p>
+
+                        <h4>✓ Pembayaran Langsung</h4>
+                        <p>Terima uang atau poin langsung dari petugas</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 50px;">Riwayat Jemput</h3>
+            <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: var(--shadow);">
+                <?php if (empty($pickups)): ?>
+                    <p>Tidak ada riwayat jemput.</p>
+                <?php else: ?>
+                    <?php foreach ($pickups as $p): ?>
+                        <div style="padding: 15px; border-bottom: 1px solid var(--border-color);">
+                            <strong><?= htmlspecialchars($p['pickup_date']) ?></strong> - Status: 
+                            <?php if ($p['status'] === 'completed'): ?>
+                                <span style="background: #d1fae5; padding: 4px 8px; border-radius: 4px; color: #065f46;">Selesai</span>
+                            <?php elseif ($p['status'] === 'scheduled'): ?>
+                                <span style="background: #fef3c7; padding: 4px 8px; border-radius: 4px; color: #92400e;">Dijadwalkan</span>
+                            <?php elseif ($p['status'] === 'cancelled'): ?>
+                                <span style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; color: #7f1d1d;">Dibatalkan</span>
+                            <?php else: ?>
+                                <span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; color: #333;">Menunggu</span>
+                            <?php endif; ?>
+                            <p style="margin: 8px 0; color: var(--text-color);"><?php echo htmlspecialchars($p['estimated_weight']) ?> kg — <?= htmlspecialchars($p['types']) ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </main>
+    </div>
+    <div class="sidebar-backdrop" onclick="document.querySelector('.sidebar') && document.querySelector('.sidebar').classList.remove('open'); document.body.style.overflow='';"></div>
+
+    <footer class="footer"><div class="container"><div class="footer-bottom"><p>&copy; 2024 Bank Sampah Indonesia.</p></div></div></footer>
+
+    <script src="/assets/js/script.js"></script>
+    <script src="/assets/js/dashboard.js"></script>
+    <script>
+        document.getElementById('pickupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Pesanan jemput Anda berhasil! Kami akan datang sesuai jadwal yang dijanjikan.');
+            e.target.reset();
+        });
+    </script>
+</body>
+</html>

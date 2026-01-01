@@ -1,0 +1,11 @@
+{
+  "name": "web-bank-sampah Devcontainer",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "forwardPorts": [8000, 80],
+  "workspaceFolder": "/var/www/html",
+  "postCreateCommand": "composer install || true",
+  "remoteUser": "root"
+}

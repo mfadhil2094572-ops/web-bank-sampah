@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Sampah - Bank Sampah</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <link rel="stylesheet" href="/assets/css/calculator.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-logo">
+                <i class="fas fa-leaf"></i>
+                <span>Bank Sampah</span>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/">Beranda</a></li>
+                <li><a href="/about">Tentang Kami</a></li>
+                <li><a href="/services">Layanan</a></li>
+                <li><a href="/members">Member</a></li>
+                <li><a href="/calculator" class="active">Kalkulator</a></li>
+                <li><a href="/contact">Kontak</a></li>
+                <li><a href="/login" class="btn-login">Masuk</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Kalkulator Sampah</h1>
+            <p>Hitung berapa banyak poin dan uang yang bisa Anda dapatkan</p>
+        </div>
+    </section>
+
+    <!-- Calculator Section -->
+    <section class="calculator-section">
+        <div class="container">
+            <div class="calculator-wrapper">
+                <div class="calculator-panel">
+                    <h2>Input Sampah Anda</h2>
+                    
+                    <div class="waste-input">
+                                <div class="waste-type-selector">
+                                    <label>Pilih Jenis Sampah:</label>
+                                    <?php
+                                    require_once __DIR__ . '/../../../config/db.php';
+                                    $stmt = $pdo->query('SELECT id, name, price_per_kg, point_per_kg FROM waste_types ORDER BY name');
+                                    $types = $stmt->fetchAll();
+                                    ?>
+                                    <select id="wasteType" onchange="updateCalculation()">
+                                        <option value="">-- Pilih Jenis Sampah --</option>
+                                        <?php foreach ($types as $t): ?>
+                                            <option value="<?= (int)$t['id'] ?>" data-price="<?= (int)$t['price_per_kg'] ?>" data-points="<?= (int)$t['point_per_kg'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                        <div class="weight-input">
+                            <label>Berat (Kg):</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="weight" min="0" step="0.1" placeholder="0" onchange="updateCalculation()" oninput="updateCalculation()">
+                                <span class="unit">kg</span>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="addToCart()">
+                            <i class="fas fa-plus"></i> Tambah ke Keranjang
+                        </button>
+                    </div>
+
+                    <div class="quick-presets">
+                        <label>Preset Berat:</label>
+                        <div class="preset-buttons">
+                            <button onclick="setWeight(1)">1kg</button>
+                            <button onclick="setWeight(2)">2kg</button>
+                            <button onclick="setWeight(5)">5kg</button>
+                            <button onclick="setWeight(10)">10kg</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calculator-results">
+                    <h2>Hasil Perhitungan</h2>
+                    
+                    <div class="waste-price-info" id="priceInfo">
+                        <div class="price-row">
+                            <span>Jenis Sampah:</span>
+                            <strong id="selectedWaste">-</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>Harga per Kg:</span>
+                            <strong id="pricePerKg">Rp 0</strong>
+                        </div>
+                        <hr>
+                        <div class="price-row">
+                            <span>Total Berat:</span>
+                            <strong id="totalWeight">0 kg</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>Total Harga:</span>
+                            <strong id="totalPrice">Rp 0</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>Poin yang Didapat:</span>
+                            <strong id="totalPoints">0 Poin</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Section -->
+            <div class="cart-section">
+                <h3><i class="fas fa-shopping-cart"></i> Keranjang Sampah</h3>
+                <div class="cart-table">
+                    <div class="cart-header">
+                        <div class="col-type">Jenis</div>
+                        <div class="col-weight">Berat</div>
+                        <div class="col-price">Harga</div>
+                        <div class="col-points">Poin</div>
+                        <div class="col-action">Aksi</div>
+                    </div>
+                    <div id="cartItems" class="cart-body">
+                        <div class="empty-cart">
+                            <i class="fas fa-inbox"></i>
+                            <p>Keranjang kosong. Tambahkan sampah terlebih dahulu.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Total Sampah:</span>
+                        <strong id="summaryWeight">0 kg</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total Uang:</span>
+                        <strong id="summaryPrice">Rp 0</strong>
+                    </div>
+                    <div class="summary-row highlight">
+                        <span>Total Poin:</span>
+                        <strong id="summaryPoints">0 Poin</strong>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="submitWaste()">
+                        <i class="fas fa-check"></i> Serahkan Sampah
+                    </button>
+                    <button class="btn btn-secondary btn-full" onclick="clearCart()">
+                        <i class="fas fa-trash"></i> Kosongkan Keranjang
+                    </button>
+                </div>
+            </div>
+
+            <!-- Price Table -->
+            <div class="price-table-section">
+                <h3>Tabel Harga Sampah</h3>
+                <div class="price-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Jenis Sampah</th>
+                                <th>Harga per Kg</th>
+                                <th>Poin per Kg</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Plastik</td>
+                                <td>Rp 2.000 - Rp 5.000</td>
+                                <td>200 - 500</td>
+                                <td>Bersih dan kering</td>
+                            </tr>
+                            <tr>
+                                <td>Kertas</td>
+                                <td>Rp 1.000 - Rp 2.000</td>
+                                <td>100 - 200</td>
+                                <td>Tidak lembab</td>
+                            </tr>
+                            <tr>
+                                <td>Logam</td>
+                                <td>Rp 5.000 - Rp 10.000</td>
+                                <td>500 - 1000</td>
+                                <td>Bersih tanpa karat</td>
+                            </tr>
+                            <tr>
+                                <td>Kaca</td>
+                                <td>Rp 2.000 - Rp 4.000</td>
+                                <td>200 - 400</td>
+                                <td>Tidak pecah</td>
+                            </tr>
+                            <tr>
+                                <td>Tekstil</td>
+                                <td>Rp 3.000 - Rp 8.000</td>
+                                <td>300 - 800</td>
+                                <td>Bersih dan layak jual</td>
+                            </tr>
+                            <tr>
+                                <td>Organik</td>
+                                <td>Rp 1.000 - Rp 3.000</td>
+                                <td>100 - 300</td>
+                                <td>Kompos siap produksi</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Tentang Bank Sampah</h4>
+                    <p>Mengubah sampah menjadi sumber daya berharga.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak Cepat</h4>
+                    <p>
+                        <i class="fas fa-phone"></i> +62 XXX-XXXX-XXXX<br>
+                        <i class="fas fa-envelope"></i> info@banksampah.id
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Bank Sampah Indonesia. Semua Hak Dilindungi.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/assets/js/script.js"></script>
+    <script src="/assets/js/calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Halaman Tidak Ditemukan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <style>
+        .error-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f7f5;
+            padding: 24px;
+        }
+
+        .error-card {
+            max-width: 520px;
+            background: #fff;
+            padding: 40px 32px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.08);
+            text-align: center;
+        }
+
+        .error-code {
+            font-size: 64px;
+            font-weight: 700;
+            color: #2e7d32;
+            margin-bottom: 12px;
+        }
+
+        .error-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .error-desc {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .error-actions a {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: #2e7d32;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .error-actions a:hover {
+            background: #256628;
+        }
+    </style>
+</head>
+<body>
+
+<div class="error-wrapper">
+    <div class="error-card">
+        <div class="error-code">404</div>
+        <div class="error-title">Halaman tidak ditemukan</div>
+        <p class="error-desc">
+            Halaman yang kamu cari tidak tersedia atau sudah dipindahkan.
+            Jangan khawatir, kamu bisa kembali ke halaman utama dan melanjutkan aktivitasmu.
+        </p>
+        <div class="error-actions">
+            <a href="/">Kembali ke Beranda</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Ignore runtime and sensitive files
+/vendor/
+/.env.local.php
+/.env
+/storage/
+/storage/*
+/.idea/
+/.vscode/
+/.DS_Store
+/node_modules/
+
+# Composer / PHP
+/vendor/
+
+# Build artifacts
+/public/uploads/
+
+# Seeder / local-only
+seeds/*.php
+
+# Backups created during refactor
+/backup/
+/backup/*
+
+# Logs
+*.log
+database/database.sqlite
+database/database.sqlite
